@@ -2,13 +2,14 @@ import os
 from openpyxl import load_workbook
 
 # Main directory
-main_directory = r'C:\Users\user\PycharmProjects\toVDRSummary\VDR SUMMARY'
+main_directory = r'C:\Users\DOUBLE33\PycharmProjects\toVDRSummary\VDR SUMMARY'
 
 # List to store subfolders
 subfolders_list = {}
 
 # Iterate through the main directories
-for client_folder in ['ENQUEST', 'JADESTONEENERGY', 'PFLNG']:
+#for client_folder in ['ENQUEST', 'JADESTONEENERGY', 'PFLNG']:
+for client_folder in ['ENQUEST']:
     # Get the path of the main folder
     main_folder_path = os.path.join(main_directory, client_folder)
 
@@ -45,7 +46,7 @@ for main_folder, subfolders in subfolders_list.items():
         # Process Excel files starting with 'Daily Summary Report'
         summary_files = [file for file in os.listdir(vessel_dir) if
                          file.startswith('Daily Summary Report') and file.endswith('.xlsx')]
-        destination_file = os.path.join(vessel_dir, 'VDR SUMMARY.xlsx')
+        destination_file = os.path.join(vessel_dir, f'VDR SUMMARY {subfolder}.xlsx')
         try:
             dest_wb = load_workbook(destination_file)
             summary_ws = dest_wb['Summary']
@@ -69,9 +70,9 @@ for main_folder, subfolders in subfolders_list.items():
                 data_H2_J2 = [cell.value for cell in excel_ws['H2:J2'][0]]  # Assuming H2:J2 are merged
 
                 # Paste data into destination workbook
-                summary_ws.cell(row=summary_start_row, column=summary_start_row, value=data_C2)
+                summary_ws.cell(row=summary_start_row, column=summary_start_column, value=data_C2)
                 for idx, cell_value in enumerate(data_H2_J2):
-                    summary_ws.cell(row=summary_start_row, column=summary_start_row + idx + 1, value=cell_value)
+                    summary_ws.cell(row=summary_start_row, column=summary_start_column + idx + 1, value=cell_value)
 
                 # Move to the next row in the destination workbook
                 summary_start_row += 1
@@ -103,6 +104,38 @@ for main_folder, subfolders in subfolders_list.items():
                         dest_ws.cell(row=row_idx, column=col_idx, value=cell.value)
 
                 print(f"Data from {file} copied to TRAILS sheet in VDR SUMMARY.xlsx")
+            except Exception as e:
+                print(f"Error processing file: {file}. Error: {e}")
+
+        # Process 'FROM VDR' files
+        from_vdr_files = [file for file in os.listdir(vessel_dir) if
+                          file.startswith('FROM VDR') and file.endswith('.xlsx')]
+
+        for file in from_vdr_files:
+            try:
+                # Load the Excel file
+                excel_path = os.path.join(vessel_dir, file)
+                excel_wb = load_workbook(excel_path)
+
+                # Define the sheets to be processed and their corresponding destination sheets
+                sheets_to_copy = ['Weather', 'TOD', 'ROB']
+
+                for sheet_name in sheets_to_copy:
+                    if sheet_name in excel_wb.sheetnames:
+                        source_ws = excel_wb[sheet_name]  # Access specific sheet by name
+                        dest_ws = dest_wb[sheet_name]
+
+                        # Copy data from the source worksheet to the destination worksheet
+                        for row_idx, row in enumerate(
+                                source_ws.iter_rows(min_row=2, max_row=source_ws.max_row, min_col=1,
+                                                    max_col=source_ws.max_column),
+                                start=2):
+                            for col_idx, cell in enumerate(row, start=1):
+                                dest_ws.cell(row=row_idx, column=col_idx, value=cell.value)
+
+                        print(f"Data from {file} copied to {sheet_name.upper()} sheet in VDR SUMMARY.xlsx")
+                    else:
+                        print(f"Sheet '{sheet_name}' not found in {file}. Skipping.")
             except Exception as e:
                 print(f"Error processing file: {file}. Error: {e}")
 
